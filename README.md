@@ -19,15 +19,28 @@ All paths use `/api/v1`. OpenAPI is available at `/v3/api-docs`; Swagger UI at `
 | GET, PUT, DELETE | `/portfolios/{id}` | Read, replace portfolio and holdings, delete |
 | GET | `/watchlists?market=US\|India&page=0&size=15` | Paginated market-specific watchlists |
 | POST | `/watchlists` | Create `{name,market}` |
+| POST | `/watchlists/import?market=USA` | Import a column-oriented CSV (`multipart/form-data`, field `file`); each header is a watchlist name and cells beneath it are symbols. `market=USA` stores watchlists in `watchlists_usa`; `market=India` stores them in `watchlists_india`. Market defaults to `USA`. |
 | GET, PATCH, DELETE | `/watchlists/{id}` | Read with paginated items / rename / delete |
 | POST | `/watchlists/{id}/items` | Atomic bulk-add `{items:[...]}` |
 | PUT, DELETE | `/watchlists/{id}/items/{symbol}` | Update or remove one symbol |
 | GET, PUT | `/preferences` | Favorite lists/symbols and ordered visible columns |
 | GET | `/instruments?q=apple&market=US` | Sample-only ticker/name lookup |
 
-Watchlist items align with `WatchlistItem`: `symbol`, `name`, nullable `price`, `change`, `trend`, `assetType`, `sector`, `score`, `volume`, `metrics`, plus `sampleData`. Portfolio holdings include `symbol`, `instrument`, `quantity`, `averageCost`, `marketValue`, and `currency`.
+Watchlist items contain `symbol`, `name`, and `isFavorite` (false by default). These items are only for symbol tracking/favorites; market quote and technical data are not stored in these tables. USA items are stored in `watchlist_items_usa` and reference `watchlists_usa`; India items are stored in `watchlist_items_india` and reference `watchlists_india`. Portfolio holdings include `symbol`, `instrument`, `quantity`, `averageCost`, `marketValue`, and `currency`.
 
-Errors have `{timestamp,status,error,message,details}`. Validation errors map field names to messages. Page/sort behavior is deterministic by ID. Duplicate item symbol (case-insensitive) returns HTTP 400; missing resource returns 404.
+Errors have `{timestamp,status,error,message,details}`. Validation errors map field names to messages. Page/sort behavior is deterministic by ID. Duplicate item symbol (case-insensitive) returns HTTP 400; missing resource returns 404. CSV imports validate the complete file before saving and create all watchlists/items atomically; duplicate names or symbols, malformed CSV, and invalid symbols fail the import.
+
+Watchlists and items are stored in separate USA and India tables: `watchlists_usa`/`watchlist_items_usa` and `watchlists_india`/`watchlist_items_india`. Each items table has a foreign key to its corresponding watchlist table. Flyway migrations move existing rows into the market-specific tables, preserve IDs and item links, remove quote/technical columns, and initialize `is_favorite` to false. The import endpoint accepts `USA` (also `US` for compatibility) or `India`.
+
+### Postman
+
+Import `postman/Folio-Pro-API.postman_collection.json` and `postman/Folio-Pro-Local-and-Dev.postman_environment.json` into Postman. The shared environment contains `localBaseUrl`, `devBaseUrl`, and the active `baseUrl` used by requests. `baseUrl` defaults to `http://localhost:8080`; replace it with `devBaseUrl` when testing a deployed dev API. Update the `devBaseUrl` placeholder with your actual dev server URL first. To run locally with the Spring `dev` profile and its sample data:
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+In the collection, the CSV import request uses `multipart/form-data`; choose the CSV file in its `file` form-data field. `importMarket` is `USA` by default; change it to `India` to write the imported lists to `watchlists_india`. Create portfolio/watchlist requests update `portfolioId` and `watchlistId` from their responses. Delete requests are explicitly marked destructive.
 
 ### Examples
 
@@ -35,8 +48,10 @@ Errors have `{timestamp,status,error,message,details}`. Validation errors map fi
 curl 'http://localhost:8080/api/v1/watchlists?market=US&page=0&size=15'
 curl -X POST http://localhost:8080/api/v1/watchlists -H 'Content-Type: application/json' \
   -d '{"name":"Long-term ideas","market":"US"}'
+curl -X POST 'http://localhost:8080/api/v1/watchlists/import?market=USA' \
+  -F 'file=@robinhood_watchlists_by_column.csv'
 curl -X POST http://localhost:8080/api/v1/watchlists/1/items -H 'Content-Type: application/json' \
-  -d '{"items":[{"symbol":"AAPL","name":"Apple Inc.","price":null,"change":null,"trend":null,"assetType":"Stock"},{"symbol":"MSFT","name":"Microsoft","price":null,"change":null}]}'
+  -d '{"items":[{"symbol":"AAPL","name":"Apple Inc.","isFavorite":true},{"symbol":"MSFT","name":"Microsoft","isFavorite":false}]}'
 curl -X PUT http://localhost:8080/api/v1/portfolios -H 'Content-Type: application/json' \
   -d '{"name":"Core account","country":"United States","currency":"USD","assetType":"Stocks & ETFs","holdings":[{"symbol":"AAPL","instrument":"Apple Inc.","quantity":10,"averageCost":150,"marketValue":null,"currency":"USD"}]}'
 ```

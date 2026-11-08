@@ -13,8 +13,12 @@ spring:
     enabled: true
   jackson:
     default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:8081}
 app:
   cors:
     allowed-origin: ${FRONTEND_ORIGIN:http://localhost:4200}

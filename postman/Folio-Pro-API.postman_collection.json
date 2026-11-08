@@ -1,0 +1,346 @@
+{
+  "info": {
+    "_postman_id": "604a41c0-7ba8-4edc-bfec-bc2fb43a8e68",
+    "name": "Folio Pro API",
+    "description": "API smoke and CRUD requests for Folio Pro. Select the Local or Dev environment. Authentication is not implemented. The CSV import request requires selecting the CSV file in the form-data body after importing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Dashboard and instruments",
+      "item": [
+        {
+          "name": "Get dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Search instruments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/instruments?q=AAPL&market=US",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "instruments"],
+              "query": [
+                {"key": "q", "value": "AAPL"},
+                {"key": "market", "value": "US"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Portfolios",
+      "item": [
+        {
+          "name": "List portfolios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/portfolios?page=0&size=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "portfolios"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "15"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create portfolio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Portfolio created', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "if (body.id) pm.environment.set('portfolioId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman sample portfolio\",\n  \"country\": \"United States\",\n  \"currency\": \"USD\",\n  \"assetType\": \"Stocks & ETFs\",\n  \"holdings\": [\n    {\n      \"symbol\": \"AAPL\",\n      \"instrument\": \"Apple Inc.\",\n      \"quantity\": 2,\n      \"averageCost\": 150,\n      \"marketValue\": null,\n      \"currency\": \"USD\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/portfolios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "portfolios"]
+            }
+          }
+        },
+        {
+          "name": "Get portfolio by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/portfolios/{{portfolioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "portfolios", "{{portfolioId}}"]
+            }
+          }
+        },
+        {
+          "name": "Replace portfolio by ID",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman sample portfolio updated\",\n  \"country\": \"United States\",\n  \"currency\": \"USD\",\n  \"assetType\": \"Stocks & ETFs\",\n  \"holdings\": [\n    {\n      \"symbol\": \"MSFT\",\n      \"instrument\": \"Microsoft Corporation\",\n      \"quantity\": 1,\n      \"averageCost\": 400,\n      \"marketValue\": null,\n      \"currency\": \"USD\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/portfolios/{{portfolioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "portfolios", "{{portfolioId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete portfolio by ID (destructive)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/portfolios/{{portfolioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "portfolios", "{{portfolioId}}"]
+            },
+            "description": "Deletes the portfolio identified by portfolioId. Run only when you intend to remove the test portfolio."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Watchlists",
+      "item": [
+        {
+          "name": "List watchlists",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watchlists?market=US&page=0&size=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watchlists"],
+              "query": [
+                {"key": "market", "value": "US"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "15"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create watchlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Watchlist created', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "if (body.id) pm.environment.set('watchlistId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman sample watchlist\",\n  \"market\": \"US\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watchlists",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watchlists"]
+            }
+          }
+        },
+        {
+          "name": "Import CSV into USA or India watchlist table",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Choose a column-oriented CSV. The first row contains watchlist names; subsequent rows contain stock symbols."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watchlists/import?market={{importMarket}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watchlists", "import"],
+              "query": [{"key": "market", "value": "{{importMarket}}"}]
+            },
+            "description": "Set importMarket to USA or India. Select the CSV file in Body > form-data > file after importing this collection. The API accepts USA (also US) or India."
+          }
+        },
+        {
+          "name": "Get watchlist with items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watchlists/{{watchlistId}}?page=0&size=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watchlists", "{{watchlistId}}"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "15"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rename watchlist",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman sample watchlist renamed\",\n  \"market\": \"US\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watchlists/{{watchlistId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watchlists", "{{watchlistId}}"]
+            },
+            "description": "The market must match the existing watchlist. Change both this request body and the watchlist if testing India."
+          }
+        },
+        {
+          "name": "Add items to watchlist",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"symbol\": \"AAPL\",\n      \"name\": \"Apple Inc.\",\n      \"isFavorite\": true\n    },\n    {\n      \"symbol\": \"MSFT\",\n      \"name\": \"Microsoft Corporation\",\n      \"isFavorite\": false\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watchlists/{{watchlistId}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watchlists", "{{watchlistId}}", "items"]
+            }
+          }
+        },
+        {
+          "name": "Update watchlist item",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"AAPL\",\n  \"name\": \"Apple Inc.\",\n  \"isFavorite\": true\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watchlists/{{watchlistId}}/items/{{symbol}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watchlists", "{{watchlistId}}", "items", "{{symbol}}"]
+            }
+          }
+        },
+        {
+          "name": "Remove watchlist item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watchlists/{{watchlistId}}/items/{{symbol}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watchlists", "{{watchlistId}}", "items", "{{symbol}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete watchlist (destructive)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watchlists/{{watchlistId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watchlists", "{{watchlistId}}"]
+            },
+            "description": "Deletes the watchlist and its items. Run only when you intend to remove the test watchlist."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Preferences",
+      "item": [
+        {
+          "name": "Get preferences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/preferences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "preferences"]
+            }
+          }
+        },
+        {
+          "name": "Save preferences",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"favoriteWatchlists\": [],\n  \"favoriteSymbols\": {\n    \"US\": [\"AAPL\", \"MSFT\"],\n    \"India\": []\n  },\n  \"watchlistColumns\": [\"symbol\", \"name\", \"assetType\", \"price\", \"change\", \"trend\"]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/preferences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "preferences"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:8080"},
+    {"key": "watchlistId", "value": "1"},
+    {"key": "portfolioId", "value": "1"},
+    {"key": "symbol", "value": "AAPL"}
+  ]
+}

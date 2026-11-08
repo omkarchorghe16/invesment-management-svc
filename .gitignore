@@ -1,4 +1,5 @@
 target/
+.idea/
 *.log
 .env
 application-secrets.yml
