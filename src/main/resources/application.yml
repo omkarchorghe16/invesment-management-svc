@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: folio-pro-api
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/folio_pro}
+    username: ${POSTGRES_USER:folio_pro}
+    password: ${POSTGRES_PASSWORD:folio_pro}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  jackson:
+    default-property-inclusion: non_null
+server:
+  port: ${SERVER_PORT:8080}
+app:
+  cors:
+    allowed-origin: ${FRONTEND_ORIGIN:http://localhost:4200}
+  api:
+    development-only: ${API_DEVELOPMENT_ONLY:true}
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
