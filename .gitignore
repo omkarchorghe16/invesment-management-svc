@@ -2,4 +2,8 @@ target/
 .idea/
 *.log
 .env
+.env.*
+!.env.example
 application-secrets.yml
+application-secrets.yaml
+application-k8s.env

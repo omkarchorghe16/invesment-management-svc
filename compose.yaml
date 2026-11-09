@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-folio_pro}
+      POSTGRES_USER: ${POSTGRES_USER:-folio_pro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  folio-pro-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: folio-pro-api:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      SERVER_PORT: 8081
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-folio_pro}
+      POSTGRES_USER: ${POSTGRES_USER:-folio_pro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:4200}
+      API_DEVELOPMENT_ONLY: "true"
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+
+volumes:
+  postgres_data:

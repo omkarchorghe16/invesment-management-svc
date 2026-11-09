@@ -16,12 +16,14 @@ public final class ApiDtos {
       @Valid List<HoldingRequest> holdings) {}
     public record HoldingResponse(String symbol, String instrument, BigDecimal quantity, BigDecimal averageCost, BigDecimal marketValue, String currency) {}
     public record PortfolioResponse(Long id, String name, String country, String currency, String assetType, List<HoldingResponse> holdings, boolean sampleData) {}
-    public record WatchlistRequest(@NotBlank @Size(max=40) String name, @NotBlank @Pattern(regexp="US|India") String market) {}
+    public record WatchlistRequest(@NotBlank @Size(max=40) String name, @NotBlank @Pattern(regexp="US|India") String market,
+      @Positive Long userId) {}
     public record WatchlistItemRequest(@NotBlank @Pattern(regexp="[A-Za-z0-9.-]{1,15}") String symbol,
       @Size(max=160) String name, Boolean isFavorite) {}
     public record BulkItemsRequest(@NotEmpty @Size(max=100) @Valid List<WatchlistItemRequest> items) {}
     public record WatchlistItemResponse(Long id, String symbol, String name, boolean isFavorite) {}
-    public record WatchlistResponse(Long id, String name, String market, String currency, List<WatchlistItemResponse> items) {}
+    public record WatchlistResponse(Long id, String name, String market, String currency, Long userId,
+      List<WatchlistItemResponse> items) {}
     public record WatchlistImportResponse(int watchlistsCreated, int itemsCreated, List<String> watchlistNames) {}
     public record PageResponse<T>(List<T> content, int page, int size, long totalElements, int totalPages) {}
     public record PreferencesRequest(@NotNull List<@NotBlank String> favoriteWatchlists,

@@ -136,20 +136,47 @@
       "name": "Watchlists",
       "item": [
         {
-          "name": "List watchlists",
+          "name": "List watchlists with tickers (paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns paginated watchlists', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.content).to.be.an('array');",
+                  "  pm.expect(body.page).to.be.a('number');",
+                  "  pm.expect(body.size).to.be.a('number');",
+                  "  pm.expect(body.totalElements).to.be.a('number');",
+                  "  pm.expect(body.totalPages).to.be.a('number');",
+                  "  body.content.forEach(function (watchlist) {",
+                  "    pm.expect(watchlist).to.have.property('name');",
+                  "    pm.expect(watchlist.items).to.be.an('array');",
+                  "    watchlist.items.forEach(function (item) {",
+                  "      pm.expect(item).to.have.property('symbol');",
+                  "      pm.expect(item).to.have.property('name');",
+                  "    });",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/watchlists?market=US&page=0&size=15",
+              "raw": "{{baseUrl}}/api/v1/watchlists?page={{watchlistPage}}&size={{watchlistPageSize}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "watchlists"],
               "query": [
-                {"key": "market", "value": "US"},
-                {"key": "page", "value": "0"},
-                {"key": "size", "value": "15"}
+                {"key": "page", "value": "{{watchlistPage}}"},
+                {"key": "size", "value": "{{watchlistPageSize}}"}
               ]
-            }
+            },
+            "description": "Returns a page of watchlists with each watchlist's full items array (symbol, name, isFavorite). Omit market to include both US and India; optionally add market=US or market=India to filter. Pagination is zero-based and applies to watchlists."
           }
         },
         {
@@ -172,7 +199,7 @@
             "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman sample watchlist\",\n  \"market\": \"US\"\n}",
+              "raw": "{\n  \"name\": \"Postman sample watchlist\",\n  \"market\": \"US\",\n  \"userId\": 1\n}",
               "options": {"raw": {"language": "json"}}
             },
             "url": {
@@ -199,12 +226,12 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/watchlists/import?market={{importMarket}}",
+              "raw": "{{baseUrl}}/api/v1/watchlists/import?market={{importMarket}}&userId={{userId}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "watchlists", "import"],
-              "query": [{"key": "market", "value": "{{importMarket}}"}]
+              "query": [{"key": "market", "value": "{{importMarket}}"}, {"key": "userId", "value": "{{userId}}"}]
             },
-            "description": "Set importMarket to USA or India. Select the CSV file in Body > form-data > file after importing this collection. The API accepts USA (also US) or India."
+            "description": "Set importMarket to USA or India and userId to 1 for USA imports. Select the CSV file in Body > form-data > file after importing this collection. The API accepts USA (also US) or India."
           }
         },
         {
@@ -338,9 +365,12 @@
     }
   ],
   "variable": [
-    {"key": "baseUrl", "value": "http://localhost:8080"},
+    {"key": "baseUrl", "value": "http://localhost:8081"},
     {"key": "watchlistId", "value": "1"},
+    {"key": "watchlistPage", "value": "0"},
+    {"key": "watchlistPageSize", "value": "15"},
     {"key": "portfolioId", "value": "1"},
-    {"key": "symbol", "value": "AAPL"}
+    {"key": "symbol", "value": "AAPL"},
+    {"key": "userId", "value": "1"}
   ]
 }

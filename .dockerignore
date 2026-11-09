@@ -1,0 +1,11 @@
+.git
+.idea
+target/*
+!target/
+!target/folio-pro-api-*.jar
+.env
+.env.*
+application-secrets.yml
+application-secrets.yaml
+application-k8s.env
+*.dump

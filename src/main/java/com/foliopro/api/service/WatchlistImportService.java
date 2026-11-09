@@ -35,7 +35,10 @@ public class WatchlistImportService {
     }
 
     @Transactional
-    public WatchlistImportResponse importWatchlists(MultipartFile file, String market) {
+    public WatchlistImportResponse importWatchlists(MultipartFile file, String market, Long userId) {
+        if (userId == null || userId < 1) {
+            throw new IllegalArgumentException("User ID must be a positive number");
+        }
         String normalizedMarket = normalizeMarket(market);
         String csv;
         try {
@@ -51,6 +54,9 @@ public class WatchlistImportService {
             WatchlistEntity watchlist = normalizedMarket.equals("US")
                     ? new UsaWatchlistEntity()
                     : new IndiaWatchlistEntity();
+            if (watchlist instanceof UsaWatchlistEntity usa) {
+                usa.setUserId(userId);
+            }
             watchlist.setName(data.name());
             entities.add(watchlist);
             names.add(data.name());

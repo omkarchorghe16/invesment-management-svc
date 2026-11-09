@@ -17,9 +17,9 @@ All paths use `/api/v1`. OpenAPI is available at `/v3/api-docs`; Swagger UI at `
 | GET | `/dashboard` | Summary, growth history, US/India allocation, portfolio summaries, gainers/losers (`sampleData: true`) |
 | GET, POST | `/portfolios` | Paginated list / create (page=0,size=15) |
 | GET, PUT, DELETE | `/portfolios/{id}` | Read, replace portfolio and holdings, delete |
-| GET | `/watchlists?market=US\|India&page=0&size=15` | Paginated market-specific watchlists |
-| POST | `/watchlists` | Create `{name,market}` |
-| POST | `/watchlists/import?market=USA` | Import a column-oriented CSV (`multipart/form-data`, field `file`); each header is a watchlist name and cells beneath it are symbols. `market=USA` stores watchlists in `watchlists_usa`; `market=India` stores them in `watchlists_india`. Market defaults to `USA`. |
+| GET | `/watchlists?page=0&size=15&market=US\|India` | Paginated watchlists with every ticker nested in each watchlist's `items` array; omit market for both |
+| POST | `/watchlists` | Create `{name,market,userId?}`; USA `userId` defaults to `1` |
+| POST | `/watchlists/import?market=USA&userId=1` | Import a column-oriented CSV (`multipart/form-data`, field `file`); each header is a watchlist name and cells beneath it are symbols. USA imports store the supplied `userId` (default `1`) in `watchlists_usa`; India imports go to `watchlists_india`. Market defaults to `USA`. |
 | GET, PATCH, DELETE | `/watchlists/{id}` | Read with paginated items / rename / delete |
 | POST | `/watchlists/{id}/items` | Atomic bulk-add `{items:[...]}` |
 | PUT, DELETE | `/watchlists/{id}/items/{symbol}` | Update or remove one symbol |
@@ -28,13 +28,38 @@ All paths use `/api/v1`. OpenAPI is available at `/v3/api-docs`; Swagger UI at `
 
 Watchlist items contain `symbol`, `name`, and `isFavorite` (false by default). These items are only for symbol tracking/favorites; market quote and technical data are not stored in these tables. USA items are stored in `watchlist_items_usa` and reference `watchlists_usa`; India items are stored in `watchlist_items_india` and reference `watchlists_india`. Portfolio holdings include `symbol`, `instrument`, `quantity`, `averageCost`, `marketValue`, and `currency`.
 
+The watchlist-list response paginates watchlists (zero-based `page`, `size` 1–100) while returning all ticker items for every watchlist on that page:
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "name": "Long-term ideas",
+      "market": "US",
+      "currency": "USD",
+      "userId": 1,
+      "items": [
+        {"id": 10, "symbol": "AAPL", "name": "Apple Inc.", "isFavorite": true}
+      ]
+    }
+  ],
+  "page": 0,
+  "size": 15,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
 Errors have `{timestamp,status,error,message,details}`. Validation errors map field names to messages. Page/sort behavior is deterministic by ID. Duplicate item symbol (case-insensitive) returns HTTP 400; missing resource returns 404. CSV imports validate the complete file before saving and create all watchlists/items atomically; duplicate names or symbols, malformed CSV, and invalid symbols fail the import.
 
 Watchlists and items are stored in separate USA and India tables: `watchlists_usa`/`watchlist_items_usa` and `watchlists_india`/`watchlist_items_india`. Each items table has a foreign key to its corresponding watchlist table. Flyway migrations move existing rows into the market-specific tables, preserve IDs and item links, remove quote/technical columns, and initialize `is_favorite` to false. The import endpoint accepts `USA` (also `US` for compatibility) or `India`.
 
+USA watchlists have a `user_id` column. Existing USA rows and new rows default to user ID `1`; the create-watchlist request can include `userId`, and CSV import accepts it as a query parameter. India watchlists do not have this column. The ID is currently a development placeholder and is not authenticated or authorization-checked.
+
 ### Postman
 
-Import `postman/Folio-Pro-API.postman_collection.json` and `postman/Folio-Pro-Local-and-Dev.postman_environment.json` into Postman. The shared environment contains `localBaseUrl`, `devBaseUrl`, and the active `baseUrl` used by requests. `baseUrl` defaults to `http://localhost:8080`; replace it with `devBaseUrl` when testing a deployed dev API. Update the `devBaseUrl` placeholder with your actual dev server URL first. To run locally with the Spring `dev` profile and its sample data:
+Import `postman/Folio-Pro-API.postman_collection.json` and `postman/Folio-Pro-Local-and-Dev.postman_environment.json` into Postman. The shared environment contains `localBaseUrl`, `devBaseUrl`, and the active `baseUrl` used by requests. `baseUrl` defaults to `http://localhost:8081`; replace it with `devBaseUrl` when testing a deployed dev API. Update the `devBaseUrl` placeholder with your actual dev server URL first. To run locally with the Spring `dev` profile and its sample data:
 
 ```bash
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
@@ -45,21 +70,23 @@ In the collection, the CSV import request uses `multipart/form-data`; choose the
 ### Examples
 
 ```bash
-curl 'http://localhost:8080/api/v1/watchlists?market=US&page=0&size=15'
-curl -X POST http://localhost:8080/api/v1/watchlists -H 'Content-Type: application/json' \
-  -d '{"name":"Long-term ideas","market":"US"}'
-curl -X POST 'http://localhost:8080/api/v1/watchlists/import?market=USA' \
+curl 'http://localhost:8081/api/v1/watchlists?market=US&page=0&size=15'
+curl -X POST http://localhost:8081/api/v1/watchlists -H 'Content-Type: application/json' \
+  -d '{"name":"Long-term ideas","market":"US","userId":1}'
+curl -X POST 'http://localhost:8081/api/v1/watchlists/import?market=USA&userId=1' \
   -F 'file=@robinhood_watchlists_by_column.csv'
-curl -X POST http://localhost:8080/api/v1/watchlists/1/items -H 'Content-Type: application/json' \
+curl -X POST http://localhost:8081/api/v1/watchlists/1/items -H 'Content-Type: application/json' \
   -d '{"items":[{"symbol":"AAPL","name":"Apple Inc.","isFavorite":true},{"symbol":"MSFT","name":"Microsoft","isFavorite":false}]}'
-curl -X PUT http://localhost:8080/api/v1/portfolios -H 'Content-Type: application/json' \
+curl -X PUT http://localhost:8081/api/v1/portfolios -H 'Content-Type: application/json' \
   -d '{"name":"Core account","country":"United States","currency":"USD","assetType":"Stocks & ETFs","holdings":[{"symbol":"AAPL","instrument":"Apple Inc.","quantity":10,"averageCost":150,"marketValue":null,"currency":"USD"}]}'
 ```
 
 ## Prerequisites / run
 
 - JDK 21, Maven 3.9+, PostgreSQL 15+.
-- Set `POSTGRES_URL` (JDBC URL), `POSTGRES_USER`, and `POSTGRES_PASSWORD`; defaults are local development convenience only. `FRONTEND_ORIGIN` defaults to `http://localhost:4200`; use an exact origin, not wildcard. `SERVER_PORT` defaults to 8080.
+- Set `POSTGRES_URL` (JDBC URL), `POSTGRES_USER`, and `POSTGRES_PASSWORD`; defaults are local development convenience only. `FRONTEND_ORIGIN` defaults to `http://localhost:4200`; use an exact origin, not wildcard. `SERVER_PORT` defaults to 8081.
+- `APP_LOG_LEVEL` controls application package logging and defaults to `INFO`; use `DEBUG` locally
+  when investigating application behavior.
 - Create a PostgreSQL database `folio_pro`, then run:
 
 ```bash
@@ -72,6 +99,59 @@ mvn test
 ```
 
 Flyway applies `src/main/resources/db/migration`. Optional `dev` profile seeds two sample watchlists only when watchlists are empty; it inserts no holdings and never claims live prices. Keep secrets in environment/secret manager; no provider credentials are configured. Market data is behind `SampleMarketDataProvider`, replaceable by a future provider adapter, and demo fixtures are not real recommendations or current quotes.
+
+## Docker Compose
+
+Docker Compose starts PostgreSQL and the API with a persistent database volume. The database is
+published only on host loopback port 5433; the API is available at `http://localhost:8081`.
+
+```bash
+cp .env.example .env
+# Set POSTGRES_PASSWORD to a local-only value in the ignored .env file.
+mvn -DskipTests package
+docker compose up --build -d
+docker compose ps
+```
+
+The API container connects to `postgres:5432` over the Compose network. To run Spring Boot on the
+host against this Compose database, set `POSTGRES_URL=jdbc:postgresql://localhost:5433/folio_pro`;
+otherwise it uses the configured default `localhost:5432`. Stop the containers with
+`docker compose down`; use `docker compose down -v` only when you intend to delete the local
+database volume. Do not commit `.env` or put secrets in the Docker image.
+
+Application controller/service invocation logs and exceptions are written to standard output.
+Follow container logs with `docker compose logs -f folio-pro-api`; set `APP_LOG_LEVEL=DEBUG` in
+`.env` to increase application detail. Method arguments and request bodies are intentionally not
+logged. Unexpected API exceptions include a stack trace in the server logs while the client receives
+the existing sanitized 500 response.
+
+## Optional Docker Desktop Kubernetes
+
+The `k8s/` manifests and `scripts/deploy-local-k8s.sh` provide a local-only Docker Desktop
+deployment. Build the image first, create an ignored `application-k8s.env` with database connection
+values reachable from Docker Desktop Kubernetes (for a Mac-hosted PostgreSQL instance,
+`POSTGRES_URL=jdbc:postgresql://host.docker.internal:5432/folio_pro`), and deploy with:
+
+```bash
+mvn -DskipTests package
+docker build -t folio-pro-api:local .
+# Store POSTGRES_URL, POSTGRES_USER, POSTGRES_PASSWORD, and FRONTEND_ORIGIN in
+# application-k8s.env (KEY=value, one per line); this file is ignored by git.
+bash scripts/deploy-local-k8s.sh local
+```
+
+Set `APP_SECRETS_FILE` to use a different env file. The script refuses to deploy unless the active
+Kubernetes context is `docker-desktop`, the image exists locally, and the env file is present. It
+creates/updates a Kubernetes Secret from that ignored env file and verifies readiness. No cloud
+deployment or registry publishing is configured.
+
+## Engineering conventions
+
+Repository-specific Copilot guidance is in `.github/copilot-instructions.md`, with Java coding,
+architecture, Spring Boot, and logging rules under `.github/instructions/`. Reusable workflows for
+architecture, JPA, REST APIs, testing, logging, and future provider integrations are under
+`.github/skills/`. These instructions supplement the existing implementation and do not introduce
+news-scheduler jobs, notification channels, or provider credentials into this application.
 
 ## Angular integration guide
 

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: folio-pro-api
+  namespace: dev
+spec:
+  selector:
+    app: folio-pro-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP
